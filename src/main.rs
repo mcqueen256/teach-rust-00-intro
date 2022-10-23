@@ -1,7 +1,11 @@
-use sycamore::prelude::*;
+use log::info;
+use sycamore::{prelude::*, rt::JsCast};
+use wasm_bindgen::UnwrapThrowExt;
 
 fn main() {
     wasm_logger::init(wasm_logger::Config::default());
+    info!("Page loaded");
+
     sycamore::render(|cx| {
         view! { cx,
             Presentation {
@@ -20,6 +24,7 @@ fn main() {
             }
         }
     });
+    info!("end");
 }
 
 #[derive(Props)]
@@ -37,7 +42,16 @@ fn Presentation<'a, G: Html>(cx: Scope<'a>, props: PresentationProps<'a, G>) -> 
         overflow-y: scroll;
     "#;
 
-    let current_slide = create_rc_signal(0u32);
+    // let current_slide = create_rc_signal(0u32);
+
+    let document = web_sys::window().unwrap().document().unwrap();
+    let event_listener = gloo::events::EventListener::new(&document, "keydown", move |event| {
+        let event = event.dyn_ref::<web_sys::KeyboardEvent>().unwrap_throw();
+        let key = event.key();
+        info!("Key was pressed: {key}");
+    });
+    // Bind the event_listener to the context so that it is not dropped.
+    let _ = create_signal(cx, event_listener);
 
     view! { cx,
         div (class="max-h-screen min-w-screen snap-proximity snap-start", style=style) {
