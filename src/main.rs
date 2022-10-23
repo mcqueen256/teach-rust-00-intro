@@ -1,7 +1,7 @@
 use log::info;
 use sycamore::{prelude::*, rt::JsCast};
 use wasm_bindgen::UnwrapThrowExt;
-use web_sys::{Document, Event};
+use web_sys::Event;
 
 fn main() {
     wasm_logger::init(wasm_logger::Config::default());
