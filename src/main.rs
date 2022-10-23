@@ -42,7 +42,7 @@ fn Presentation<'a, G: Html>(cx: Scope<'a>, props: PresentationProps<'a, G>) -> 
         overflow-y: scroll;
     "#;
 
-    // let current_slide = create_rc_signal(0u32);
+    let current_slide = create_rc_signal(0u32);
 
     let document = web_sys::window().unwrap().document().unwrap();
     let event_listener = gloo::events::EventListener::new(&document, "keydown", move |event| {
@@ -52,6 +52,18 @@ fn Presentation<'a, G: Html>(cx: Scope<'a>, props: PresentationProps<'a, G>) -> 
     });
     // Bind the event_listener to the context so that it is not dropped.
     let _ = create_signal(cx, event_listener);
+
+    // Add anchors to all Slides.
+    if let Some(views) = children.as_fragment() {
+        for (i, view) in views.iter().enumerate() {
+            let element = view.as_node().unwrap();
+            if element.to_web_sys().node_name() == "SECTION" {
+                // TODO: this if statement only slightly safeguards the selection of Slide()s.
+                // In the future, use a way to filter out anything that is not a Slide.
+                element.set_attribute("id", &format!("_target_slide_{i}"));
+            }
+        }
+    }
 
     view! { cx,
         div (class="max-h-screen min-w-screen snap-proximity snap-start", style=style) {
