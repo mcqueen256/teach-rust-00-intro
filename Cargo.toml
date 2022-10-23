@@ -10,5 +10,5 @@ sycamore = { git = "https://github.com/sycamore-rs/sycamore" }
 log = "0.4.17"
 wasm-bindgen = "0.2.83"
 wasm-logger = "0.2.0"
-web-sys = { version = "0.3.60", features = [ "KeyboardEvent" ]}
+web-sys = { version = "0.3.60", features = [ "DomRect", "HtmlDivElement", "HtmlElement", "KeyboardEvent", "MouseScrollEvent" ]}
 gloo = "0.8.0"
