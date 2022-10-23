@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 sycamore = { git = "https://github.com/sycamore-rs/sycamore" }
+log = "0.4.17"
+wasm-logger = "0.2.0"

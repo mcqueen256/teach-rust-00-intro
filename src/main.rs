@@ -1,24 +1,26 @@
 use sycamore::prelude::*;
 
 fn main() {
-    sycamore::render(|cx| view! { cx,
-        Presentation {
-            Slide {
-                div (class="min-h-screen min-w-screen bg-yellow-300") {}
-            }
-            Slide {
-                div (class="min-h-screen min-w-screen bg-blue-300") {}
-            }
-            Slide {
-                div (class="min-h-screen min-w-screen bg-green-300") {}
-            }
-            Slide {
-                div (class="min-h-screen min-w-screen bg-red-300") {}
+    wasm_logger::init(wasm_logger::Config::default());
+    sycamore::render(|cx| {
+        view! { cx,
+            Presentation {
+                Slide {
+                    div (class="min-h-screen min-w-screen bg-yellow-300") {}
+                }
+                Slide {
+                    div (class="min-h-screen min-w-screen bg-blue-300") {}
+                }
+                Slide {
+                    div (class="min-h-screen min-w-screen bg-green-300") {}
+                }
+                Slide {
+                    div (class="min-h-screen min-w-screen bg-red-300") {}
+                }
             }
         }
     });
 }
-
 
 #[derive(Props)]
 struct PresentationProps<'a, G: Html> {
@@ -34,6 +36,8 @@ fn Presentation<'a, G: Html>(cx: Scope<'a>, props: PresentationProps<'a, G>) -> 
         scroll-snap-type: y mandatory;
         overflow-y: scroll;
     "#;
+
+    let current_slide = create_rc_signal(0u32);
 
     view! { cx,
         div (class="max-h-screen min-w-screen snap-proximity snap-start", style=style) {
