@@ -12,8 +12,11 @@ fn main() {
         view! { cx,
             Presentation {
                 Slide {
-                    div (class="min-h-screen min-w-screen bg-yellow-300 flex justify-center items-center") {
-                        h1 (class="items-center text-8xl text-red-800 font-bold") { "Learning Rust" }
+                    div (style="display: block; position: relative;", class="min-h-screen min-w-screen") {
+                        div (style="position: absolute; width: 100%; height: 100%;", class="bg-purple-400") {}
+                        div (style="position: relative;", class="min-h-screen min-w-screen flex justify-center items-center") {
+                            h1 (class="items-center text-8xl text-red-800 font-bold") { "Learning Rust" }
+                        }
                     }
                 }
                 Slide {
