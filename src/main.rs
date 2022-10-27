@@ -1,8 +1,11 @@
+use std::cell::RefCell;
+
 use log::info;
 use sycamore::prelude::*;
 
 mod components;
 use components::prelude::*;
+use wasm_bindgen::JsCast;
 
 fn main() {
     wasm_logger::init(wasm_logger::Config::default());
@@ -11,11 +14,22 @@ fn main() {
     sycamore::render(|cx| {
         view! { cx,
             Presentation {
+                // Slide {
+                //     div (style="display: block; position: relative;", class="min-h-screen min-w-screen") {
+                //         div (style="position: absolute; width: 100%; height: 100%;", class="bg-slate-100") {
+                //             div (style="height: 60%;", class="bg-slate-100")
+                //             div (style="height: 10%;", class="bg-black")
+                //             div (style="height: 30%;", class="bg-green-600")
+                //         }
+                //         div (style="position: relative;", class="min-h-screen min-w-screen flex justify-center items-center") {
+                //             h1 (class="items-center text-8xl text-red-800 font-bold") { "Learning Rust" }
+                //         }
+                //     }
+                // }
                 Slide {
-                    div (style="display: block; position: relative;", class="min-h-screen min-w-screen") {
-                        div (style="position: absolute; width: 100%; height: 100%;", class="bg-purple-400") {}
-                        div (style="position: relative;", class="min-h-screen min-w-screen flex justify-center items-center") {
-                            h1 (class="items-center text-8xl text-red-800 font-bold") { "Learning Rust" }
+                    div (class="min-h-screen min-w-screen bg-green-300  flex justify-center items-center") {
+                        div (class="items-center") {
+                            Triangle ()
                         }
                     }
                 }
@@ -35,4 +49,123 @@ fn main() {
     });
 
     info!("Renderizationingator complete. Enjoy your webpage sir (Tips hat).");
+}
+
+use wasm_bindgen::closure::Closure;
+use wasm_bindgen::JsValue;
+use wasm_bindgen::UnwrapThrowExt;
+use web_sys::Event;
+use web_sys::HtmlCanvasElement;
+
+fn window() -> web_sys::Window {
+    web_sys::window().expect("no global `window` exists")
+}
+
+fn request_animation_frame(f: &Closure<dyn FnMut()>) {
+    window()
+        .request_animation_frame(f.as_ref().unchecked_ref())
+        .expect("should register `requestAnimationFrame` OK");
+}
+
+fn document() -> web_sys::Document {
+    window()
+        .document()
+        .expect("should have a document on window")
+}
+
+fn element_from_ref<T, G: GenericNode>(node_ref: &sycamore::noderef::NodeRef<G>) -> T
+where
+    T: Into<web_sys::HtmlElement> + JsCast,
+{
+    node_ref
+        .get::<DomNode>()
+        .to_web_sys()
+        .value_of()
+        .dyn_into::<T>()
+        .unwrap_throw()
+}
+
+#[component]
+pub fn Triangle<'a, G: Html>(cx: Scope<'a>) -> View<G> {
+    let canvas_ref = create_node_ref(cx);
+
+    on_mount(cx, move || {
+        let canvas: HtmlCanvasElement = element_from_ref(&canvas_ref);
+        info!("canvas {canvas:?}");
+
+        let w = canvas.width() as f64;
+        let h = canvas.height() as f64;
+        info!("canvas width and hight = (w: {w}, h: {h})");
+
+        let context: web_sys::CanvasRenderingContext2d = canvas
+            .get_context("2d")
+            .unwrap()
+            .unwrap()
+            .dyn_into::<web_sys::CanvasRenderingContext2d>()
+            .unwrap();
+
+        context.begin_path();
+
+        // Draw the outer circle.
+        context
+            .arc(75.0, 75.0, 50.0, 0.0, std::f64::consts::PI * 2.0)
+            .unwrap();
+
+        // Draw the mouth.
+        context.move_to(110.0, 75.0);
+        context
+            .arc(75.0, 75.0, 35.0, 0.0, std::f64::consts::PI)
+            .unwrap();
+
+        // Draw the left eye.
+        context.move_to(65.0, 65.0);
+        context
+            .arc(60.0, 65.0, 5.0, 0.0, std::f64::consts::PI * 2.0)
+            .unwrap();
+
+        // Draw the right eye.
+        context.move_to(95.0, 65.0);
+        context
+            .arc(90.0, 65.0, 5.0, 0.0, std::f64::consts::PI * 2.0)
+            .unwrap();
+
+        context.stroke();
+
+        context.begin_path();
+        context.set_stroke_style(&JsValue::from_str("#C3C3C3"));
+        context.set_line_width(1.0);
+        context
+            .ellipse(w / 2.0, h / 2.0, 30.0, 30.0, 0.0, 0.0, 360.0)
+            .unwrap();
+
+        context.stroke();
+
+        use std::rc::Rc;
+
+        let f = Rc::new(RefCell::new(None));
+        let g = f.clone();
+
+        let mut i = 0;
+
+        *g.borrow_mut() = Some(Closure::new(move || {
+            if i > 5 {
+                info!("all done!");
+
+                // Drop this closure handler.
+                let _ = f.borrow_mut().take();
+                return;
+            }
+
+            i += 1;
+            info!("executing closure: {i}");
+            request_animation_frame(f.borrow().as_ref().unwrap());
+        }));
+
+        request_animation_frame(g.borrow().as_ref().unwrap());
+    });
+
+    // Render this component.
+    view! {cx,
+        canvas (ref=canvas_ref, width=700, height=700)
+    }
 }
