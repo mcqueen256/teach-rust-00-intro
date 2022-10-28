@@ -27,9 +27,9 @@ fn main() {
                 //     }
                 // }
                 Slide {
-                    div (class="min-h-screen min-w-screen bg-green-300  flex justify-center items-center") {
+                    div (class="min-h-screen min-w-screen bg-yellow-100 flex justify-center items-center") {
                         div (class="items-center") {
-                            Triangle ()
+                            ChartOfNoCompromise ()
                         }
                     }
                 }
@@ -54,7 +54,6 @@ fn main() {
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsValue;
 use wasm_bindgen::UnwrapThrowExt;
-use web_sys::Event;
 use web_sys::HtmlCanvasElement;
 
 fn window() -> web_sys::Window {
@@ -67,11 +66,11 @@ fn request_animation_frame(f: &Closure<dyn FnMut()>) {
         .expect("should register `requestAnimationFrame` OK");
 }
 
-fn document() -> web_sys::Document {
-    window()
-        .document()
-        .expect("should have a document on window")
-}
+// fn document() -> web_sys::Document {
+//     window()
+//         .document()
+//         .expect("should have a document on window")
+// }
 
 fn element_from_ref<T, G: GenericNode>(node_ref: &sycamore::noderef::NodeRef<G>) -> T
 where
@@ -85,8 +84,15 @@ where
         .unwrap_throw()
 }
 
+// TODO: [ ] labels
+// TODO: [X] Multiple edges
+// TODO: [ ] Animation to single point.
+// TODO: [ ] Animation of choose two stator.
+
+use nalgebra::*;
+
 #[component]
-pub fn Triangle<'a, G: Html>(cx: Scope<'a>) -> View<G> {
+pub fn ChartOfNoCompromise<'a, G: Html>(cx: Scope<'a>) -> View<G> {
     let canvas_ref = create_node_ref(cx);
 
     on_mount(cx, move || {
@@ -97,6 +103,12 @@ pub fn Triangle<'a, G: Html>(cx: Scope<'a>) -> View<G> {
         let h = canvas.height() as f64;
         info!("canvas width and hight = (w: {w}, h: {h})");
 
+        // all shapes must be in this area.
+        let boundary_radius = w.min(h) / 2.0;
+        let center = Vector2::new(w / 2.0, h / 2.0);
+
+        let properties = ["this", "that", "other"];
+
         let context: web_sys::CanvasRenderingContext2d = canvas
             .get_context("2d")
             .unwrap()
@@ -104,35 +116,83 @@ pub fn Triangle<'a, G: Html>(cx: Scope<'a>) -> View<G> {
             .dyn_into::<web_sys::CanvasRenderingContext2d>()
             .unwrap();
 
+        // Draw bounding area.
+        {
+            context.begin_path();
+            context.set_stroke_style(&JsValue::from_str("#FF2558"));
+            context.set_line_width(1.0);
+            context
+                .ellipse(
+                    center.x,
+                    center.y,
+                    boundary_radius,
+                    boundary_radius,
+                    0.0,
+                    0.0,
+                    360.0,
+                )
+                .unwrap();
+            context.stroke();
+        }
+
+        // Draw first point circle.
+        let point_circle_centers: Vec<Vector2<f64>> = (0..properties.len())
+            .into_iter()
+            .map(|i| i as f64)
+            .map(|i| {
+                let i = i as f64;
+                let percentage_distance_across_boundary_radius: f64 = 0.8;
+                let x_ancular_offset =
+                    (i * std::f64::consts::PI * 2.0 / properties.len() as f64).sin();
+                let y_ancular_offset =
+                    (i * std::f64::consts::PI * 2.0 / properties.len() as f64).cos();
+                Vector2::from([
+                    boundary_radius * percentage_distance_across_boundary_radius * x_ancular_offset,
+                    boundary_radius * percentage_distance_across_boundary_radius * y_ancular_offset,
+                ])
+            })
+            .collect();
+        for point in point_circle_centers.iter() {
+            context.begin_path();
+            context.set_stroke_style(&JsValue::from_str("#022558"));
+            context.set_line_width(1.0);
+            context
+                .ellipse(
+                    center.x + point.x,
+                    center.y - point.y,
+                    boundary_radius / 14.0,
+                    boundary_radius / 14.0,
+                    0.0,
+                    0.0,
+                    360.0,
+                )
+                .unwrap();
+            context.stroke();
+        }
+        let mut point_circle_centers_copy = point_circle_centers.clone();
+        point_circle_centers_copy.rotate_right(1);
+        let line_iter = point_circle_centers
+            .iter()
+            .zip(point_circle_centers_copy.iter())
+            .map(|(a, b)| {
+                // Bring the points a and b slightly closer to each other.
+                let unit_vector_a_to_b = (b - a) / b.metric_distance(a);
+                let movement_distance = (boundary_radius / 14.0) + (boundary_radius / 14.0) / 4.0;
+                let a_prime = a + unit_vector_a_to_b * movement_distance;
+                let b_prime = b - unit_vector_a_to_b * movement_distance;
+                return (a_prime, b_prime);
+            });
+        for (point_start, point_end) in line_iter {
+            context.begin_path();
+            context.set_stroke_style(&JsValue::from_str("#022558"));
+            context.set_line_width(1.0);
+            context.move_to(center.x + point_start.x, center.y - point_start.y);
+            context.line_to(center.x + point_end.x, center.y - point_end.y);
+            context.stroke();
+        }
+
         context.begin_path();
-
-        // Draw the outer circle.
-        context
-            .arc(75.0, 75.0, 50.0, 0.0, std::f64::consts::PI * 2.0)
-            .unwrap();
-
-        // Draw the mouth.
-        context.move_to(110.0, 75.0);
-        context
-            .arc(75.0, 75.0, 35.0, 0.0, std::f64::consts::PI)
-            .unwrap();
-
-        // Draw the left eye.
-        context.move_to(65.0, 65.0);
-        context
-            .arc(60.0, 65.0, 5.0, 0.0, std::f64::consts::PI * 2.0)
-            .unwrap();
-
-        // Draw the right eye.
-        context.move_to(95.0, 65.0);
-        context
-            .arc(90.0, 65.0, 5.0, 0.0, std::f64::consts::PI * 2.0)
-            .unwrap();
-
-        context.stroke();
-
-        context.begin_path();
-        context.set_stroke_style(&JsValue::from_str("#C3C3C3"));
+        context.set_stroke_style(&JsValue::from_str("#022558"));
         context.set_line_width(1.0);
         context
             .ellipse(w / 2.0, h / 2.0, 30.0, 30.0, 0.0, 0.0, 360.0)
