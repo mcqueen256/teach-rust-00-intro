@@ -88,6 +88,7 @@ where
 // TODO: [X] Multiple edges
 // TODO: [ ] Animation to single point.
 // TODO: [ ] Animation of choose two stator.
+// TODO: [ ] Variable length.
 
 use nalgebra::*;
 
@@ -135,7 +136,7 @@ pub fn ChartOfNoCompromise<'a, G: Html>(cx: Scope<'a>) -> View<G> {
             context.stroke();
         }
 
-        // Draw first point circle.
+        // Draw point circles.
         let point_circle_centers: Vec<Vector2<f64>> = (0..properties.len())
             .into_iter()
             .map(|i| i as f64)
@@ -169,6 +170,8 @@ pub fn ChartOfNoCompromise<'a, G: Html>(cx: Scope<'a>) -> View<G> {
                 .unwrap();
             context.stroke();
         }
+
+        // Lines between point circles.
         let mut point_circle_centers_copy = point_circle_centers.clone();
         point_circle_centers_copy.rotate_right(1);
         let line_iter = point_circle_centers
@@ -190,6 +193,15 @@ pub fn ChartOfNoCompromise<'a, G: Html>(cx: Scope<'a>) -> View<G> {
             context.line_to(center.x + point_end.x, center.y - point_end.y);
             context.stroke();
         }
+
+        // Lable Lines
+        for point in point_circle_centers.iter() {}
+
+        let targets = point_circle_centers
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| i >= &(properties.len() / 4))
+            .map(|(_, point)| point);
 
         context.begin_path();
         context.set_stroke_style(&JsValue::from_str("#022558"));
