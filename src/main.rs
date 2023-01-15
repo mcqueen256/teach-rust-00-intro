@@ -39,7 +39,14 @@ fn main() {
                     }
                 }
                 Slide {
-                    div (class="min-h-screen min-w-screen bg-green-300") {}
+                    div (class="min-h-screen min-w-screen bg-green-300") {
+                        p {"Yo Yo what good dog?"}
+                    }
+                }
+                Slide {
+                    div (class="min-h-screen min-w-screen bg-yellow-400") {
+                        p {"Fav colour?"}
+                    }
                 }
                 Slide {
                     div (class="min-h-screen min-w-screen bg-red-300") {}
@@ -137,12 +144,13 @@ pub fn ChartOfNoCompromise<'a, G: Html>(cx: Scope<'a>) -> View<G> {
         }
 
         // Draw point circles.
+        let point_circle_radius = boundary_radius / 14.0;
+        let percentage_distance_across_boundary_radius: f64 = 0.8;
         let point_circle_centers: Vec<Vector2<f64>> = (0..properties.len())
             .into_iter()
             .map(|i| i as f64)
             .map(|i| {
                 let i = i as f64;
-                let percentage_distance_across_boundary_radius: f64 = 0.8;
                 let x_ancular_offset =
                     (i * std::f64::consts::PI * 2.0 / properties.len() as f64).sin();
                 let y_ancular_offset =
@@ -161,8 +169,8 @@ pub fn ChartOfNoCompromise<'a, G: Html>(cx: Scope<'a>) -> View<G> {
                 .ellipse(
                     center.x + point.x,
                     center.y - point.y,
-                    boundary_radius / 14.0,
-                    boundary_radius / 14.0,
+                    point_circle_radius,
+                    point_circle_radius,
                     0.0,
                     0.0,
                     360.0,
@@ -172,6 +180,7 @@ pub fn ChartOfNoCompromise<'a, G: Html>(cx: Scope<'a>) -> View<G> {
         }
 
         // Lines between point circles.
+        let movement_distance = (point_circle_radius) + (point_circle_radius) / 4.0;
         let mut point_circle_centers_copy = point_circle_centers.clone();
         point_circle_centers_copy.rotate_right(1);
         let line_iter = point_circle_centers
@@ -180,7 +189,6 @@ pub fn ChartOfNoCompromise<'a, G: Html>(cx: Scope<'a>) -> View<G> {
             .map(|(a, b)| {
                 // Bring the points a and b slightly closer to each other.
                 let unit_vector_a_to_b = (b - a) / b.metric_distance(a);
-                let movement_distance = (boundary_radius / 14.0) + (boundary_radius / 14.0) / 4.0;
                 let a_prime = a + unit_vector_a_to_b * movement_distance;
                 let b_prime = b - unit_vector_a_to_b * movement_distance;
                 return (a_prime, b_prime);
@@ -202,6 +210,84 @@ pub fn ChartOfNoCompromise<'a, G: Html>(cx: Scope<'a>) -> View<G> {
             .enumerate()
             .filter(|(i, _)| i >= &(properties.len() / 4))
             .map(|(_, point)| point);
+
+        let p = |v: f64| {};
+
+        for target in targets {
+            let a = boundary_radius * percentage_distance_across_boundary_radius;
+            let b = boundary_radius;
+            let D = f64::pi() / 6.0;
+            let C = f64::pi() - f64::pi() / 2.0 - D;
+            log::debug!("C: {}", C * 180.0 / f64::pi());
+            let B = f64::pi() / 2.0 + D;
+            log::debug!("B: {}", B * 180.0 / f64::pi());
+            let A = (a * B.sin() / b).asin();
+            log::debug!("A: {}", A * 180.0 / f64::pi());
+            let E = f64::pi() - f64::pi() / 2.0 - D - A;
+            log::debug!("E: {}", E * 180.0 / f64::pi());
+            let Dprime = f64::pi() / 2.0 - E;
+            let e = E.sin() * b / B.sin();
+            let d = b * (f64::pi() / 2.0 - E).sin() - a;
+            // let c = C.sin() * e / E.sin(); // Does not work.
+            let c = (b.powi(2) - (a + d).powi(2)).sqrt();
+            // let d = (b.powi(2) - c.powi(2)).sqrt() - a;
+            let fg = movement_distance;
+            let h = (2.0 * d.powi(2)).sqrt() - fg;
+            let i = c - d;
+
+            let rot = Rotation2::new(f64::pi() / 4.0);
+            let v_fg: Vector2<f64> = rot * Vector2::new(fg, 0.0);
+            let v_h: Vector2<f64> = rot * Vector2::new(h, 0.0);
+
+            let bx = c;
+            let by = a + d;
+
+            // DEBUG
+            // context.begin_path();
+            // context.set_stroke_style(&JsValue::from_str("#022558"));
+            // context.move_to(center.x, center.y);
+            // context.line_to(center.x + c, center.y);
+            // context.stroke();
+            // Draw line b
+            context.begin_path();
+            context.set_stroke_style(&JsValue::from_str("#4d8aeb"));
+            context.move_to(center.x, center.y);
+            let temp_v_b = Rotation2::new(f64::pi() / 2.0 - E) * Vector2::new(b, 0.0);
+            context.line_to(center.x + temp_v_b.x, center.y - temp_v_b.y);
+            context.stroke();
+            // Draw line c
+            context.begin_path();
+            context.set_stroke_style(&JsValue::from_str("#99ff33"));
+            context.move_to(center.x, center.y);
+            context.line_to(center.x + c, center.y);
+            context.stroke();
+            // Draw line c
+            context.begin_path();
+            context.set_stroke_style(&JsValue::from_str("#99ff33"));
+            context.move_to(center.x, center.y - a);
+            let temp_v_b = Rotation2::new(f64::pi() / 2.0 - E) * Vector2::new(b, 0.0);
+            context.line_to(center.x + temp_v_b.x, center.y - temp_v_b.y);
+            context.stroke();
+            // Draw line d
+            context.begin_path();
+            context.set_stroke_style(&JsValue::from_str("#99ff33"));
+            let temp_v_b = Rotation2::new(f64::pi() / 2.0 - E) * Vector2::new(b, 0.0);
+            context.move_to(center.x + temp_v_b.x, center.y - temp_v_b.y);
+            context.line_to(center.x + temp_v_b.x, center.y - temp_v_b.y + d);
+            context.stroke();
+
+            // ACTUAL
+            context.begin_path();
+            context.set_stroke_style(&JsValue::from_str("#022558"));
+            context.move_to(center.x + target.x + v_fg.x, center.y - target.y - v_fg.y);
+            context.line_to(
+                center.x + target.x + v_fg.x + v_h.x,
+                center.y - target.y - v_fg.y - v_h.y,
+            );
+            let temp_v_b = Rotation2::new(f64::pi() / 2.0 - E) * Vector2::new(b, 0.0);
+            context.line_to(center.x + temp_v_b.x, center.y - temp_v_b.y);
+            context.stroke();
+        }
 
         context.begin_path();
         context.set_stroke_style(&JsValue::from_str("#022558"));
